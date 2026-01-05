@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { CONTACTS_DB_ID, PETITIONS_DB_ID } from '@/lib/notion';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const fetchDB = async (id: string) => {

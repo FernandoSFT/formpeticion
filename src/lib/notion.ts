@@ -1,18 +1,19 @@
 import { Client } from '@notionhq/client';
 
-if (!process.env.NOTION_API_KEY) {
-    throw new Error('Missing NOTION_API_KEY environment variable');
-}
-
 export const notion = new Client({
-    auth: process.env.NOTION_API_KEY,
+    auth: process.env.NOTION_API_KEY || '',
 });
 
-export const CONTACTS_DB_ID = process.env.NOTION_DATABASE_CONTACTS_ID!;
-export const PETITIONS_DB_ID = process.env.NOTION_DATABASE_PETITIONS_ID!;
+export const CONTACTS_DB_ID = process.env.NOTION_DATABASE_CONTACTS_ID || '';
+export const PETITIONS_DB_ID = process.env.NOTION_DATABASE_PETITIONS_ID || '';
 
-if (!CONTACTS_DB_ID || !PETITIONS_DB_ID) {
-    throw new Error('Missing Notion Database IDs');
+// We keep a check but inside the query function or similar
+function validateConfig() {
+    if (!process.env.NOTION_API_KEY || !CONTACTS_DB_ID || !PETITIONS_DB_ID) {
+        console.error('Environment variables for Notion are missing!');
+        return false;
+    }
+    return true;
 }
 
 // Helper to query database using fetch workaround

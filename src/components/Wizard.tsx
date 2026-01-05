@@ -56,7 +56,8 @@ export function Wizard() {
                     dates: finalData.dates,
                     adults: finalData.adults,
                     children: finalData.children,
-                    childrenAges: finalData.childrenAges
+                    childrenAges: finalData.childrenAges,
+                    notes: finalData.notes
                 })
             });
 

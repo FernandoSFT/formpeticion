@@ -9,13 +9,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Phone is required' }, { status: 400 });
         }
 
-        // Filter by 'Teléfono'
+        // Normalize phone: remove spaces, dots, dashes
+        const cleanPhone = phone.replace(/[\s\.\-]/g, '');
+
+        console.log('Validating phone:', cleanPhone);
+
+        // Try exact match first
         const results = await queryDatabase(CONTACTS_DB_ID, {
             property: 'Teléfono',
             phone_number: {
-                equals: phone
+                equals: cleanPhone
             }
         });
+
+        // If no results, try with leading + if not present, or without it
+        // Notion phone_number filter is very restrictive.
+        // Some users store it as "600000000" and others as "+34600000000"
 
         if (results.results.length > 0) {
             const page = results.results[0];

@@ -12,6 +12,7 @@ interface TripDetailsData {
         end: string;
         flexible: boolean;
     };
+    notes: string;
 }
 
 interface TripDetailsProps {
@@ -33,6 +34,7 @@ export function TripDetails({ onNext }: TripDetailsProps) {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [flexible, setFlexible] = useState(false);
+    const [notes, setNotes] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +42,8 @@ export function TripDetails({ onNext }: TripDetailsProps) {
             onNext({
                 destination,
                 tripType,
-                dates: { start: startDate, end: endDate, flexible }
+                dates: { start: startDate, end: endDate, flexible },
+                notes
             });
         }
     };
@@ -114,6 +117,19 @@ export function TripDetails({ onNext }: TripDetailsProps) {
                         className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
                     />
                     <label htmlFor="flexible" className="text-sm text-gray-600">Mis fechas son flexibles (+/- 3 días)</label>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Información adicional / Notas
+                    </label>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Tipo de habitaciones, régimenes alimenticios, presupuesto aproximado, etc..."
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black focus:outline-none resize-none"
+                    />
                 </div>
             </div>
 

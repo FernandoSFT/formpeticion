@@ -13,7 +13,8 @@ export async function POST(request: Request) {
             dates,
             adults,
             children,
-            childrenAges
+            childrenAges,
+            notes
         } = body;
 
         let contactId = body.contactId;
@@ -60,32 +61,50 @@ export async function POST(request: Request) {
       Niños: ${children}
       Edades niños: ${childrenAges || 'N/A'}
       Fechas: ${JSON.stringify(dates)}
+      
+      Notas del cliente:
+      ${notes || 'Ninguna'}
     `;
 
-        await notion.pages.create({
-            parent: { database_id: PETITIONS_DB_ID },
-            properties: {
+        console.log('Creating Notion petition for contact:', contactId);
+
+        try {
+            const petitionProperties: any = {
                 'Viaje': {
                     title: [{ text: { content: tripTitle } }]
                 },
                 'Viajero Principal': {
                     relation: [{ id: contactId }]
                 },
-                'Destino': {
-                    multi_select: destination ? [{ name: destination }] : []
-                },
-                // We put details in Observaciones because fields might not match exactly
                 'Observaciones': {
                     rich_text: [{ text: { content: descriptionBlock } }]
-                },
-                'Total personas': {
-                    rich_text: [{ text: { content: `${adults + children}` } }]
                 }
-                // F. Inicio Viaje and F. Fin de Viaje
-                // We need to parse dates. 'dates' object structure depends on frontend picker.
-                // Assuming dates = { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
+            };
+
+            // Only add these if they might exist in the DB schema
+            // We use strings for 'Total personas' as per your original code, 
+            // but if it's a number it will fail.
+            if (adults !== undefined) {
+                petitionProperties['Total personas'] = {
+                    rich_text: [{ text: { content: `${adults + children}` } }]
+                };
             }
-        });
+
+            if (destination) {
+                // We try multi_select but if it fails we might want to know
+                petitionProperties['Destino'] = {
+                    multi_select: [{ name: destination.replace(',', '') }] // Ensure no commas in names
+                };
+            }
+
+            await notion.pages.create({
+                parent: { database_id: PETITIONS_DB_ID },
+                properties: petitionProperties
+            });
+        } catch (notionError: any) {
+            console.error('Notion Creation Error Details:', JSON.stringify(notionError.body || notionError));
+            throw new Error(`Error en Notion: ${notionError.message}`);
+        }
 
         return NextResponse.json({ success: true });
 

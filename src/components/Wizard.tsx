@@ -14,7 +14,7 @@ import { CheckCircle2 } from 'lucide-react';
 export function Wizard() {
     // Current Step:
     // 1: Phone
-    // 2: UserDetails (New User Only)
+    // 2: UserDetails (New or Existing User)
     // 3: Destination
     // 4: Dates
     // 5: People
@@ -28,20 +28,13 @@ export function Wizard() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
 
-    // Calculate progress based on steps. 
-    // Since step 2 is skipped for existing users, max steps is effectively 7.
-    // We can just use a simple ratio.
     const TOTAL_STEPS = 7;
 
     const handlePhoneValidated = (data: any) => {
+        // Always go to Step 2 (UserDetails), whether existing or not.
+        // Data for existing user will be passed via formData.user which UserDetails will use as defaultValues
         setFormData((prev: any) => ({ ...prev, ...data }));
-        if (data.exists) {
-            // User exists -> Skip UserDetails (Step 2) -> Go to Destination (Step 3)
-            setStep(3);
-        } else {
-            // New user -> Go to UserDetails (Step 2)
-            setStep(2);
-        }
+        setStep(2);
     };
 
     const handleUserDetails = (data: any) => {
@@ -69,6 +62,12 @@ export function Wizard() {
         setStep(7);
     };
 
+    const handleBack = () => {
+        if (step > 1) {
+            setStep(step - 1);
+        }
+    };
+
     const handleNotes = async (data: any) => {
         const finalData = { ...formData, ...data };
         setFormData(finalData);
@@ -82,8 +81,8 @@ export function Wizard() {
                     phone: finalData.phone,
                     name: finalData.name || finalData.user?.name,
                     email: finalData.email || finalData.user?.email,
-                    contactId: finalData.user?.id, // Only present if user Existed
-                    existingUser: finalData.exists, // Flag to help backend
+                    contactId: finalData.user?.id,
+                    existingUser: finalData.exists,
 
                     destination: finalData.destination,
                     tripType: finalData.tripType,
@@ -131,10 +130,20 @@ export function Wizard() {
     }
 
     return (
-        <div className="w-full max-w-lg mx-auto bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-            {/* Progress Bar */}
-            <div className="bg-gray-50 px-8 pt-8 pb-4">
-                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="w-full max-w-lg mx-auto bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative">
+            {/* Progress Bar & Header */}
+            <div className="bg-gray-50 px-8 pt-8 pb-4 relative">
+                {step > 1 && (
+                    <button
+                        onClick={handleBack}
+                        className="absolute top-8 left-4 p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
+                        title="Volver"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                    </button>
+                )}
+
+                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden mx-4">
                     <motion.div
                         className="h-full bg-black rounded-full"
                         initial={{ width: 0 }}
@@ -142,7 +151,7 @@ export function Wizard() {
                         transition={{ ease: "circOut", duration: 0.5 }}
                     />
                 </div>
-                <div className="flex justify-between items-center mt-3">
+                <div className="flex justify-between items-center mt-3 mx-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Solicitud de viaje</p>
                     <p className="text-xs font-medium text-gray-500">Paso {step} de {TOTAL_STEPS}</p>
                 </div>
@@ -154,7 +163,15 @@ export function Wizard() {
                         <PhoneInput key="1" onValidated={handlePhoneValidated} />
                     )}
                     {step === 2 && (
-                        <UserDetails key="2" onNext={handleUserDetails} />
+                        <UserDetails
+                            key="2"
+                            onNext={handleUserDetails}
+                            // Pre-fill with existing user data if available OR formData.name/email if the user went back
+                            defaultValues={{
+                                name: formData.name || formData.user?.name,
+                                email: formData.email || formData.user?.email
+                            }}
+                        />
                     )}
                     {step === 3 && (
                         <DestinationStep

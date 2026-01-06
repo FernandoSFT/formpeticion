@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         const contact = Array.isArray(n8nResult) ? n8nResult[0] : (n8nResult.contact || n8nResult);
 
         // Extract ID
-        let contactId = contact?.id || contact?.PageId;
+        const contactId = contact?.id || contact?.PageId;
 
         // Extract Name
         let name = contact?.name || contact?.Nombre || contact?.['Nombre completo'];

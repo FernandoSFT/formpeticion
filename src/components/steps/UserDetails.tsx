@@ -11,11 +11,12 @@ interface UserData {
 
 interface UserDetailsProps {
     onNext: (data: UserData) => void;
+    defaultValues?: { name?: string; email?: string };
 }
 
-export function UserDetails({ onNext }: UserDetailsProps) {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+export function UserDetails({ onNext, defaultValues }: UserDetailsProps) {
+    const [name, setName] = useState(defaultValues?.name || '');
+    const [email, setEmail] = useState(defaultValues?.email || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

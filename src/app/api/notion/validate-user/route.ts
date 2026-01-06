@@ -23,16 +23,34 @@ export async function POST(request: Request) {
         // n8n might return the contact directly or in an array, or with a exists flag
         // We'll adapt to a common n8n pattern: an array of results or a single object.
         const contact = Array.isArray(n8nResult) ? n8nResult[0] : (n8nResult.contact || n8nResult);
-        const name = contact?.name || contact?.Nombre || contact?.['Nombre completo'] || '';
-        const contactId = contact?.id || contact?.PageId;
 
-        if (contactId && name) {
+        // Extract ID
+        let contactId = contact?.id || contact?.PageId;
+
+        // Extract Name
+        let name = contact?.name || contact?.Nombre || contact?.['Nombre completo'];
+        if (typeof name === 'object' && name?.title && Array.isArray(name.title)) {
+            // Notion Title Property
+            name = name.title[0]?.plain_text || '';
+        } else if (typeof name === 'object' && name?.rich_text && Array.isArray(name.rich_text)) {
+            // Notion Rich Text Property
+            name = name.rich_text[0]?.plain_text || '';
+        }
+
+        // Extract Email
+        let email = contact?.email || contact?.Email;
+        if (typeof email === 'object' && email?.email) {
+            // Notion Email Property
+            email = email.email;
+        }
+
+        if (contactId) {
             return NextResponse.json({
                 exists: true,
                 user: {
                     id: contactId,
-                    name,
-                    email: contact.email || contact.Email || '',
+                    name: name || '',
+                    email: email || '',
                     phone: cleanPhone
                 }
             });

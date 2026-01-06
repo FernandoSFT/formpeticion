@@ -4,40 +4,72 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PhoneInput } from './steps/PhoneInput';
 import { UserDetails } from './steps/UserDetails';
-import { TripDetails } from './steps/TripDetails';
-import { FamilyComposition } from './steps/FamilyComposition';
+import { DestinationStep } from './steps/DestinationStep';
+import { DatesStep } from './steps/DatesStep';
+import { PeopleStep } from './steps/PeopleStep';
+import { TripTypeStep } from './steps/TripTypeStep';
+import { NotesStep } from './steps/NotesStep';
 import { CheckCircle2 } from 'lucide-react';
 
 export function Wizard() {
+    // Current Step:
+    // 1: Phone
+    // 2: UserDetails (New User Only)
+    // 3: Destination
+    // 4: Dates
+    // 5: People
+    // 6: TripType
+    // 7: Notes
     const [step, setStep] = useState(1);
+
+    // We store all form data here
     const [formData, setFormData] = useState<any>({});
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
 
+    // Calculate progress based on steps. 
+    // Since step 2 is skipped for existing users, max steps is effectively 7.
+    // We can just use a simple ratio.
+    const TOTAL_STEPS = 7;
+
     const handlePhoneValidated = (data: any) => {
-        setFormData({ ...formData, ...data });
-        if (data.exists && data.user) {
-            // User exists, prefill data and skip to Trip Details? 
-            // User prompt: "Si el contacto existe: Recupera nombre y email. Muestra bienvenida y permite confirmar o editar."
-            // So we GO to step 2 (UserDetails) but prefilled.
-            setStep(2);
+        setFormData((prev: any) => ({ ...prev, ...data }));
+        if (data.exists) {
+            // User exists -> Skip UserDetails (Step 2) -> Go to Destination (Step 3)
+            setStep(3);
         } else {
-            // User new: Go to step 2 (Empty).
+            // New user -> Go to UserDetails (Step 2)
             setStep(2);
         }
     };
 
     const handleUserDetails = (data: any) => {
-        setFormData({ ...formData, ...data });
+        setFormData((prev: any) => ({ ...prev, ...data }));
         setStep(3);
     };
 
-    const handleTripDetails = (data: any) => {
-        setFormData({ ...formData, ...data });
+    const handleDestination = (data: any) => {
+        setFormData((prev: any) => ({ ...prev, ...data }));
         setStep(4);
     };
 
-    const handleFamilyComposition = async (data: any) => {
+    const handleDates = (data: any) => {
+        setFormData((prev: any) => ({ ...prev, ...data }));
+        setStep(5);
+    };
+
+    const handlePeople = (data: any) => {
+        setFormData((prev: any) => ({ ...prev, ...data }));
+        setStep(6);
+    };
+
+    const handleTripType = (data: any) => {
+        setFormData((prev: any) => ({ ...prev, ...data }));
+        setStep(7);
+    };
+
+    const handleNotes = async (data: any) => {
         const finalData = { ...formData, ...data };
         setFormData(finalData);
         setIsSubmitting(true);
@@ -48,9 +80,11 @@ export function Wizard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     phone: finalData.phone,
-                    name: finalData.name,
-                    email: finalData.email,
-                    contactId: finalData.user?.id, // If existed
+                    name: finalData.name || finalData.user?.name,
+                    email: finalData.email || finalData.user?.email,
+                    contactId: finalData.user?.id, // Only present if user Existed
+                    existingUser: finalData.exists, // Flag to help backend
+
                     destination: finalData.destination,
                     tripType: finalData.tripType,
                     dates: finalData.dates,
@@ -64,7 +98,8 @@ export function Wizard() {
             if (res.ok) {
                 setIsSuccess(true);
             } else {
-                alert('Hubo un error al enviar la solicitud.');
+                console.error("Submit failed", await res.text());
+                alert('Hubo un error al enviar la solicitud. Por favor inténtalo de nuevo.');
             }
 
         } catch (e) {
@@ -77,58 +112,92 @@ export function Wizard() {
 
     if (isSuccess) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-6">
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-6 p-6">
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600"
+                    className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center text-green-600 shadow-sm"
                 >
-                    <CheckCircle2 className="w-10 h-10" />
+                    <CheckCircle2 className="w-12 h-12" />
                 </motion.div>
-                <h2 className="text-3xl font-bold">¡Solicitud Recibida!</h2>
-                <p className="text-gray-500 max-w-md">Gracias por confiar en nosotros. Tu asesor de viajes se pondrá en contacto contigo pronto para empezar a planear esta aventura.</p>
+                <div className="space-y-2">
+                    <h2 className="text-3xl font-bold text-gray-900">¡Solicitud Recibida!</h2>
+                    <p className="text-gray-500 max-w-md mx-auto text-lg">
+                        Gracias por confiar en nosotros. Tu asesor de viajes se pondrá en contacto contigo muy pronto.
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="w-full max-w-md mx-auto p-6 bg-white rounded-2xl shadow-xl border border-gray-100 min-h-[400px]">
-            <div className="mb-8">
-                <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+        <div className="w-full max-w-lg mx-auto bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+            {/* Progress Bar */}
+            <div className="bg-gray-50 px-8 pt-8 pb-4">
+                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <motion.div
-                        className="h-full bg-black"
+                        className="h-full bg-black rounded-full"
                         initial={{ width: 0 }}
-                        animate={{ width: `${(step / 4) * 100}%` }}
+                        animate={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+                        transition={{ ease: "circOut", duration: 0.5 }}
                     />
                 </div>
-                <p className="text-right text-xs text-gray-400 mt-2">Paso {step} de 4</p>
+                <div className="flex justify-between items-center mt-3">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Solicitud de viaje</p>
+                    <p className="text-xs font-medium text-gray-500">Paso {step} de {TOTAL_STEPS}</p>
+                </div>
             </div>
 
-            <AnimatePresence mode="wait">
-                {step === 1 && (
-                    <motion.div key="1" exit={{ opacity: 0, x: -20 }}>
-                        <PhoneInput onValidated={handlePhoneValidated} />
-                    </motion.div>
-                )}
-                {step === 2 && (
-                    <motion.div key="2" exit={{ opacity: 0, x: -20 }}>
-                        <UserDetails
-                            initialData={formData.user || null}
-                            onNext={handleUserDetails}
+            <div className="p-8 min-h-[400px] flex flex-col justify-center">
+                <AnimatePresence mode="wait">
+                    {step === 1 && (
+                        <PhoneInput key="1" onValidated={handlePhoneValidated} />
+                    )}
+                    {step === 2 && (
+                        <UserDetails key="2" onNext={handleUserDetails} />
+                    )}
+                    {step === 3 && (
+                        <DestinationStep
+                            key="3"
+                            onNext={handleDestination}
+                            defaultValue={formData.destination}
                         />
-                    </motion.div>
-                )}
-                {step === 3 && (
-                    <motion.div key="3" exit={{ opacity: 0, x: -20 }}>
-                        <TripDetails onNext={handleTripDetails} />
-                    </motion.div>
-                )}
-                {step === 4 && (
-                    <motion.div key="4" exit={{ opacity: 0, x: -20 }}>
-                        <FamilyComposition onNext={handleFamilyComposition} isSubmitting={isSubmitting} />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                    {step === 4 && (
+                        <DatesStep
+                            key="4"
+                            onNext={handleDates}
+                            defaultValues={formData.dates}
+                        />
+                    )}
+                    {step === 5 && (
+                        <PeopleStep
+                            key="5"
+                            onNext={handlePeople}
+                            defaultValues={{
+                                adults: formData.adults,
+                                children: formData.children,
+                                childrenAges: formData.childrenAges
+                            }}
+                        />
+                    )}
+                    {step === 6 && (
+                        <TripTypeStep
+                            key="6"
+                            onNext={handleTripType}
+                            defaultValue={formData.tripType}
+                        />
+                    )}
+                    {step === 7 && (
+                        <NotesStep
+                            key="7"
+                            onNext={handleNotes}
+                            isSubmitting={isSubmitting}
+                            defaultValue={formData.notes}
+                        />
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 }

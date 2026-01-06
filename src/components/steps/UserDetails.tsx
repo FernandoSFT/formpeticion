@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
@@ -10,20 +10,12 @@ interface UserData {
 }
 
 interface UserDetailsProps {
-    initialData?: UserData | null;
     onNext: (data: UserData) => void;
 }
 
-export function UserDetails({ initialData, onNext }: UserDetailsProps) {
-    const [name, setName] = useState(initialData?.name || '');
-    const [email, setEmail] = useState(initialData?.email || '');
-
-    useEffect(() => {
-        if (initialData) {
-            setName(initialData.name);
-            setEmail(initialData.email);
-        }
-    }, [initialData]);
+export function UserDetails({ onNext }: UserDetailsProps) {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,50 +26,49 @@ export function UserDetails({ initialData, onNext }: UserDetailsProps) {
 
     return (
         <motion.form
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
             onSubmit={handleSubmit}
             className="space-y-6"
         >
-            <div className="space-y-2">
-                {initialData ? (
-                    <h2 className="text-xl font-semibold">¡Hola de nuevo, {initialData.name.split(' ')[0]}!</h2>
-                ) : (
-                    <h2 className="text-xl font-semibold">Cuéntanos un poco sobre ti</h2>
-                )}
-                <p className="text-gray-500 text-sm">
-                    {initialData ? 'Confirma tus datos para continuar.' : 'Necesitamos tus datos para contactarte.'}
-                </p>
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Cuéntanos sobre ti</h2>
+            <p className="text-gray-500 -mt-4 text-sm">
+                Necesitamos tus datos para poder contactarte con la propuesta de viaje.
+            </p>
 
             <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Nombre Completo</label>
                     <input
                         type="text"
                         required
+                        autoFocus
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black focus:outline-none"
+                        placeholder="Ej: Juan Pérez"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-black focus:outline-none shadow-sm"
                     />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-black focus:outline-none"
+                        placeholder="ejemplo@email.com"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-black focus:outline-none shadow-sm"
                     />
                 </div>
             </div>
 
             <button
                 type="submit"
-                className="w-full bg-black text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                disabled={!name || !email}
+                className="w-full bg-black text-white py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                Continuar <ArrowRight className="w-4 h-4" />
+                Siguiente <ArrowRight className="w-5 h-5" />
             </button>
         </motion.form>
     );

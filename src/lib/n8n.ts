@@ -5,7 +5,8 @@ const N8N_WEBHOOK_LOG = "https://n8n-n8n.vm5ncf.easypanel.host/webhook/390f2a4a-
 
 export async function logEvent(event: string, user: string, status: 'Success' | 'Error', details: any) {
     try {
-        await fetch(N8N_WEBHOOK_LOG, {
+        console.log(`[n8n-log] Event: ${event}, User: ${user}, Status: ${status}`);
+        const response = await fetch(N8N_WEBHOOK_LOG, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -16,52 +17,78 @@ export async function logEvent(event: string, user: string, status: 'Success' | 
                 timestamp: new Date().toISOString()
             })
         });
+        if (!response.ok) {
+            console.error('[n8n-log] Webhook returned error:', await response.text());
+        }
     } catch (error) {
-        console.error('Failed to send log to n8n:', error);
+        console.error('[n8n-log] Failed to send log to n8n:', error);
     }
 }
 
 export async function searchContact(phone: string) {
+    console.log('[n8n-search] Fetching (POST):', N8N_WEBHOOK_SEARCH_CONTACT, 'with phone:', phone);
+
     const response = await fetch(N8N_WEBHOOK_SEARCH_CONTACT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
     });
 
+    const text = await response.text();
+    console.log('[n8n-search] Response:', text);
+
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`n8n search error: ${errorText}`);
+        throw new Error(`n8n search error (${response.status}): ${text}`);
     }
 
-    return response.json();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.warn('[n8n-search] Response is not JSON, returning text');
+        return { text };
+    }
 }
 
 export async function createContact(data: { name: string, phone: string, email: string }) {
+    console.log('[n8n-create-contact] Sending data:', data);
     const response = await fetch(N8N_WEBHOOK_CREATE_CONTACT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
 
+    const text = await response.text();
+    console.log('[n8n-create-contact] Response:', text);
+
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`n8n create contact error: ${errorText}`);
+        throw new Error(`n8n create contact error (${response.status}): ${text}`);
     }
 
-    return response.json();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return { text };
+    }
 }
 
 export async function createPetition(data: any) {
+    console.log('[n8n-create-petition] Sending data:', data);
     const response = await fetch(N8N_WEBHOOK_CREATE_PETITION, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
 
+    const text = await response.text();
+    console.log('[n8n-create-petition] Response:', text);
+
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`n8n create petition error: ${errorText}`);
+        throw new Error(`n8n create petition error (${response.status}): ${text}`);
     }
 
-    return response.json();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return { text };
+    }
 }

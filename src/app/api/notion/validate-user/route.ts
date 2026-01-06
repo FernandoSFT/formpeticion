@@ -23,13 +23,15 @@ export async function POST(request: Request) {
         // n8n might return the contact directly or in an array, or with a exists flag
         // We'll adapt to a common n8n pattern: an array of results or a single object.
         const contact = Array.isArray(n8nResult) ? n8nResult[0] : (n8nResult.contact || n8nResult);
+        const name = contact?.name || contact?.Nombre || contact?.['Nombre completo'] || '';
+        const contactId = contact?.id || contact?.PageId;
 
-        if (contact && (contact.id || contact.PageId)) {
+        if (contactId && name) {
             return NextResponse.json({
                 exists: true,
                 user: {
-                    id: contact.id || contact.PageId,
-                    name: contact.name || contact.Nombre || contact['Nombre completo'] || '',
+                    id: contactId,
+                    name,
                     email: contact.email || contact.Email || '',
                     phone: cleanPhone
                 }

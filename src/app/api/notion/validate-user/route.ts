@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { queryDatabase, CONTACTS_DB_ID } from '@/lib/notion';
+import { searchContact, logEvent } from '@/lib/n8n';
 
 export async function POST(request: Request) {
+    let cleanPhone = '';
     try {
         const { phone } = await request.json();
 
@@ -10,36 +11,27 @@ export async function POST(request: Request) {
         }
 
         // Normalize phone: remove spaces, dots, dashes
-        const cleanPhone = phone.replace(/[\s\.\-]/g, '');
+        cleanPhone = phone.replace(/[\s\.\-]/g, '');
 
-        console.log('Validating phone:', cleanPhone);
+        console.log('Validating phone via n8n:', cleanPhone);
 
-        // Try exact match first
-        const results = await queryDatabase(CONTACTS_DB_ID, {
-            property: 'Teléfono',
-            phone_number: {
-                equals: cleanPhone
-            }
-        });
+        const n8nResult = await searchContact(cleanPhone);
 
-        // If no results, try with leading + if not present, or without it
-        // Notion phone_number filter is very restrictive.
-        // Some users store it as "600000000" and others as "+34600000000"
+        // Log the search attempt
+        await logEvent('Search Contact', cleanPhone, 'Success', n8nResult);
 
-        if (results.results.length > 0) {
-            const page = results.results[0];
-            const props = page.properties;
+        // n8n might return the contact directly or in an array, or with a exists flag
+        // We'll adapt to a common n8n pattern: an array of results or a single object.
+        const contact = Array.isArray(n8nResult) ? n8nResult[0] : (n8nResult.contact || n8nResult);
 
-            const name = props['Nombre completo']?.title?.[0]?.plain_text || '';
-            const email = props['Email']?.email || '';
-
+        if (contact && (contact.id || contact.PageId)) {
             return NextResponse.json({
                 exists: true,
                 user: {
-                    id: page.id,
-                    name,
-                    email,
-                    phone
+                    id: contact.id || contact.PageId,
+                    name: contact.name || contact.Nombre || contact['Nombre completo'] || '',
+                    email: contact.email || contact.Email || '',
+                    phone: cleanPhone
                 }
             });
         }
@@ -48,6 +40,7 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('Validation Error:', error);
+        await logEvent('Search Contact Error', cleanPhone || 'unknown', 'Error', error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

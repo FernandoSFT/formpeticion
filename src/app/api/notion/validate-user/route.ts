@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { searchContact, logEvent } from '@/lib/n8n';
 
 export async function POST(request: Request) {
-    let cleanPhone = '';
+    let cleanPhone = ''; // Este se queda como 'let' porque se reasigna abajo
+
     try {
         const { phone } = await request.json();
 
@@ -10,37 +11,37 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Phone is required' }, { status: 400 });
         }
 
-        // Normalize phone: remove spaces, dots, dashes
+        // Normalizamos el teléfono
         cleanPhone = phone.replace(/[\s\.\-]/g, '');
 
         console.log('Validating phone via n8n:', cleanPhone);
 
         const n8nResult = await searchContact(cleanPhone);
 
-        // Log the search attempt
+        // Log del intento de búsqueda
         await logEvent('Search Contact', cleanPhone, 'Success', n8nResult);
 
-        // n8n might return the contact directly or in an array, or with a exists flag
-        // We'll adapt to a common n8n pattern: an array of results or a single object.
         const contact = Array.isArray(n8nResult) ? n8nResult[0] : (n8nResult.contact || n8nResult);
 
         // Extract ID
         const contactId = contact?.id || contact?.PageId;
 
-        // Extract Name
-        let name = contact?.name || contact?.Nombre || contact?.['Nombre completo'];
-        if (typeof name === 'object' && name?.title && Array.isArray(name.title)) {
-            // Notion Title Property
-            name = name.title[0]?.plain_text || '';
-        } else if (typeof name === 'object' && name?.rich_text && Array.isArray(name.rich_text)) {
-            // Notion Rich Text Property
-            name = name.rich_text[0]?.plain_text || '';
+        // Extraer Nombre (Lógica optimizada para evitar reasignaciones innecesarias)
+        let name = contact?.name || contact?.Nombre || contact?.['Nombre completo'] || '';
+
+        if (typeof name === 'object') {
+            if (name?.title?.[0]?.plain_text) {
+                name = name.title[0].plain_text;
+            } else if (name?.rich_text?.[0]?.plain_text) {
+                name = name.rich_text[0].plain_text;
+            } else {
+                name = ''; // Fallback si es un objeto pero no tiene el formato esperado
+            }
         }
 
-        // Extract Email
-        let email = contact?.email || contact?.Email;
+        // Extraer Email
+        let email = contact?.email || contact?.Email || '';
         if (typeof email === 'object' && email?.email) {
-            // Notion Email Property
             email = email.email;
         }
 
@@ -49,8 +50,8 @@ export async function POST(request: Request) {
                 exists: true,
                 user: {
                     id: contactId,
-                    name: name || '',
-                    email: email || '',
+                    name: name,
+                    email: email,
                     phone: cleanPhone
                 }
             });
@@ -60,7 +61,12 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('Validation Error:', error);
-        await logEvent('Search Contact Error', cleanPhone || 'unknown', 'Error', error.message);
+        // Intentamos registrar el error en n8n
+        try {
+            await logEvent('Search Contact Error', cleanPhone || 'unknown', 'Error', error.message);
+        } catch (logErr) {
+            console.error('Failed to log event:', logErr);
+        }
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

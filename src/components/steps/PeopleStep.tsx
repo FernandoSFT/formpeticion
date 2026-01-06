@@ -65,7 +65,7 @@ export function PeopleStep({ onNext, defaultValues }: PeopleStepProps) {
                 <div className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100">
                     <div>
                         <p className="font-semibold text-lg">Niños</p>
-                        <p className="text-sm text-gray-500">2-11 años</p>
+                        <p className="text-sm text-gray-500">0-16 años</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <button type="button" onClick={() => updateChildren(children - 1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:bg-gray-100 transition-colors">
@@ -91,7 +91,7 @@ export function PeopleStep({ onNext, defaultValues }: PeopleStepProps) {
                                     key={i}
                                     type="number"
                                     min="0"
-                                    max="11"
+                                    max="16"
                                     value={age || ''}
                                     onChange={(e) => updateAge(i, parseInt(e.target.value) || 0)}
                                     placeholder={`#${i + 1}`}
